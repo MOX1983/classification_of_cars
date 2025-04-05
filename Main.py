@@ -48,20 +48,34 @@ class MyDataset(Dataset):
 
         return sample, target
 
+class MyModel(nn.Module):
+    def __init__(self, in_channels, out):
+        super().__init__()
 
-train_dataset = MyDataset('.\\archive\\train')
-test_dataset = MyDataset('.\\archive\\valid')
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, 32, (3, 3), bias=False),   # 128 -> 126
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, (3, 3), bias=False),  #126 -> 124
+            nn.BatchNorm2d(64),
+            nn.ReLU()
+        )
 
-# img, one_hot_pos = train_dataset[5116]
-# cls = train_dataset.classes[one_hot_pos]
-# print(f"класс {cls}")
-# plt.imshow(img)
-# plt.show()
+        self.flatten = nn.Flatten()
 
-train_data, valid_data = random_split(train_dataset, [0.8, 0.2])
-print(len(train_data))
-print(len(valid_data))
+        self.layer = nn.Sequential(
+            nn.Linear(64 * 124 * 124, 128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(125, out)
+        )
 
-trein_loder = DataLoader(train_data, batch_size=16, shuffle=True)
-vajid_loder = DataLoader(valid_data, batch_size=16, shuffle=False)
-test_loder = DataLoader(test_dataset, batch_size=16, shuffle=False)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.flatten(x)
+        out = self.layer(x)
+        return out
+
+
+
