@@ -45,6 +45,9 @@ class MyDataset(Dataset):
 
         if self.transform is not None:
             sample = self.transform(sample)
+        else:
+            sample = sample.transpose((2, 0, 1))  # HWC -> CHW
+            sample = torch.tensor(sample, dtype=torch.float32) / 255.0
 
         return sample, target
 
@@ -67,7 +70,7 @@ class MyModel(nn.Module):
             nn.Linear(64 * 124 * 124, 128),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(125, out)
+            nn.Linear(128, out)
         )
 
 
