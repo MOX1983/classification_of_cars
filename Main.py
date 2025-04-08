@@ -1,22 +1,21 @@
-import json
 import os
 from PIL import Image
 import numpy as np
 
 import torch
-import torchvision
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch.nn as nn
-from torch.optim import Adam
-import matplotlib.pyplot as plt
-import torch.utils.data as data
-import torch.optim as optim
+from torchvision import transforms
+
 
 
 class MyDataset(Dataset):
     def __init__(self, path, transform=None):
         self.path = path
-        self.transform = transform
+        self.transform = transform or transforms.Compose([
+            transforms.Resize((128, 128)),
+            transforms.ToTensor(),
+        ])
 
         self.len_dataset = 0
         self.data_list = []
@@ -41,25 +40,22 @@ class MyDataset(Dataset):
         return self.len_dataset
     def __getitem__(self, item):
         fail_path, target = self.data_list[item]
-        sample = np.array(Image.open(fail_path))
+        image = Image.open(fail_path).convert("RGB")
 
         if self.transform is not None:
-            sample = self.transform(sample)
-        else:
-            sample = sample.transpose((2, 0, 1))  # HWC -> CHW
-            sample = torch.tensor(sample, dtype=torch.float32) / 255.0
+            image = self.transform(image)
 
-        return sample, target
+        return image, target
 
 class MyModel(nn.Module):
     def __init__(self, in_channels, out):
         super().__init__()
 
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, 32, (3, 3), bias=False),   # 128 -> 126
+            nn.Conv2d(in_channels, 32, (3, 3)),   # 128 -> 126
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(32, 64, (3, 3), bias=False),  #126 -> 124
+            nn.Conv2d(32, 64, (3, 3)),  #126 -> 124
             nn.BatchNorm2d(64),
             nn.ReLU()
         )
