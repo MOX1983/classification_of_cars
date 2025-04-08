@@ -17,8 +17,8 @@ from Main import MyDataset, MyModel
 
 
 
-train_dataset = MyDataset('.\\archive\\train')
-test_dataset = MyDataset('.\\archive\\valid')
+train_dataset = MyDataset('.\\Datasets\\train')
+test_dataset = MyDataset('.\\Datasets\\valid')
 
 train_data, valid_data = random_split(train_dataset, [0.8, 0.2])
 
@@ -32,16 +32,17 @@ model = MyModel(3, 2)
 loss_model = nn.CrossEntropyLoss()
 opt = torch.optim.Adam(model.parameters(), lr=0.001)
 
-# i = torch.rand([16, 24, 128, 128], dtype=torch.float32) # это проверка модели
+# i = torch.rand([16, 3, 128, 128], dtype=torch.float32) # это проверка модели
 #
 # out = model(i)
 # print(out.shape)
 
-EPOCHS = 5
+EPOCHS = 15
 train_loss = []
 train_acc = []
 val_loss = []
 val_acc = []
+
 
 for epoch in range(EPOCHS):
 
@@ -84,10 +85,10 @@ for epoch in range(EPOCHS):
             runn_val_loss.append(loss.item())
             res_val_loss = sum(runn_train_loss) / len(runn_train_loss)
 
-            true_answer += (pred.argmax(dim=1) == targets.argmax(dim=1)).sum().item()
+            true_answer += (pred.argmax(dim=1) == targets).sum().item()
 
 
-        runn_traing_acc = true_answer / len(train_data)
+        runn_val_loss = true_answer / len(train_data)
 
         val_loss.append(runn_val_loss)
         val_acc.append(res_val_loss)
@@ -96,3 +97,6 @@ for epoch in range(EPOCHS):
           f" train acc={runn_traing_acc:.4f},"
           f" val loss={runn_val_loss:.4f},"
           f" val acc={res_val_loss}")
+
+st = model.state_dict()
+torch.save(st, 'model.pt')
