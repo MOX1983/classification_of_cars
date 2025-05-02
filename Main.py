@@ -17,7 +17,6 @@ class MyDataset(Dataset):
             transforms.ToTensor(),
         ])
 
-        self.len_dataset = 0
         self.data_list = []
 
         for path_dir, dir_list, file_list in os.walk(path):
@@ -32,15 +31,22 @@ class MyDataset(Dataset):
 
             for name_file in file_list:
                 fail_path = os.path.join(path_dir, name_file)
-                self.data_list.append((fail_path, self.cls_idx[cls]))
-
-            self.len_dataset += len(file_list)
-
+                if os.path.isfile(fail_path):
+                    try:
+                        with Image.open(fail_path) as img:
+                            img.verify()
+                        self.data_list.append((fail_path, self.cls_idx[cls]))
+                    except:
+                        print(f"[Предупреждение] Файл битый и не будет загружен: {fail_path}")
     def __len__(self):
-        return self.len_dataset
+        return len(self.data_list)
     def __getitem__(self, item):
         fail_path, target = self.data_list[item]
-        image = Image.open(fail_path).convert("RGB")
+        try:
+            image = Image.open(fail_path).convert("RGBA").convert("RGB")
+        except Exception as e:
+            print(f"[Ошибка] Не удалось открыть: {fail_path}\n{e}")
+            return self.__getitem__(np.random.randint(0, len(self)))
 
         if self.transform is not None:
             image = self.transform(image)
@@ -65,7 +71,7 @@ class MyModel(nn.Module):
         self.layer = nn.Sequential(
             nn.Linear(64 * 124 * 124, 128),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.2),
             nn.Linear(128, out)
         )
 
@@ -75,6 +81,4 @@ class MyModel(nn.Module):
         x = self.flatten(x)
         out = self.layer(x)
         return out
-
-
 

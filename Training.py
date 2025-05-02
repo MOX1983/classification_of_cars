@@ -10,88 +10,74 @@ from tqdm import tqdm
 
 from Main import MyDataset, MyModel
 
+def train():
+    train_dataset = MyDataset('.\\Datasets\\train')
+
+    train_data, valid_data = random_split(train_dataset, [0.8, 0.2])
+
+    train_loader = DataLoader(train_data, batch_size=32, shuffle=True, num_workers=2, pin_memory=True)
+    valid_loader = DataLoader(valid_data, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
 
 
-train_dataset = MyDataset('.\\Datasets\\train')
-test_dataset = MyDataset('.\\Datasets\\valid')
+    model = MyModel(3, 5)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-train_data, valid_data = random_split(train_dataset, [0.8, 0.2])
+    EPOCHS = 30
+    best_val_loss = float('inf')
 
-trein_loder = DataLoader(train_data, batch_size=16, shuffle=True)
-valid_loder = DataLoader(valid_data, batch_size=16, shuffle=False)
-test_loder = DataLoader(test_dataset, batch_size=16, shuffle=False)
+    train_loss, train_acc = [], []
+    val_loss, val_acc = [], []
 
+    for epoch in range(EPOCHS):
+        model.train()
+        running_loss, correct = 0.0, 0
 
-model = MyModel(3, 2)
+        train_loop = tqdm(train_loader, desc=f"[{epoch+1}/{EPOCHS}] Epoch", leave=False)
+        for images, labels in train_loop:
+            images, labels = images, labels
 
-loss_model = nn.CrossEntropyLoss()
-opt = torch.optim.Adam(model.parameters(), lr=0.001)
+            optimizer.zero_grad()
+            outputs = model(images)
 
-# i = torch.rand([16, 3, 128, 128], dtype=torch.float32) # это проверка модели
-#
-# out = model(i)
-# print(out.shape)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-EPOCHS = 15
-train_loss = []
-train_acc = []
-val_loss = []
-val_acc = []
+            running_loss += loss.item()
+            correct += (outputs.argmax(1) == labels).sum().item()
 
+        avg_train_loss = running_loss / len(train_loader)
+        avg_train_acc = correct / len(train_data)
 
-for epoch in range(EPOCHS):
+        model.eval()
+        val_running_loss, val_correct = 0.0, 0
 
-    model.train()
-    runn_train_loss = []
-    true_answer = 0
-    train_loop = tqdm(trein_loder, leave=False)
-    for x, targets in train_loop:
+        with torch.no_grad():
+            for images, labels in valid_loader:
+                images, labels = images, labels
+                outputs = model(images)
 
-        pred = model(x)
-        loss = loss_model(pred, targets)
+                loss = criterion(outputs, labels)
+                val_running_loss += loss.item()
+                val_correct += (outputs.argmax(1) == labels).sum().item()
 
-        opt.zero_grad()
-        loss.backward()
+        avg_val_loss = val_running_loss / len(valid_loader)
+        avg_val_acc = val_correct / len(valid_data)
 
-        opt.step()
+        train_loss.append(avg_train_loss)
+        train_acc.append(avg_train_acc)
+        val_loss.append(avg_val_loss)
+        val_acc.append(avg_val_acc)
 
-        runn_train_loss.append(loss.item())
-        res_train_loss = sum(runn_train_loss)/len(runn_train_loss)
+        print(f" Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Acc = {avg_train_acc:.4f} | "
+              f"Val Loss = {avg_val_loss:.4f}, Acc = {avg_val_acc:.4f}")
 
-        true_answer += (pred.argmax(dim=1) == targets).sum().item()
-
-        train_loop.set_description(f"epoch [{epoch+1}/{EPOCHS}, train loss= {res_train_loss:.4f}]")
-
-    runn_traing_acc = true_answer / len(train_data)
-
-    train_loss.append(res_train_loss)
-    train_acc.append(runn_traing_acc)
-
-
-    model.eval()
-    with  torch.no_grad():
-        runn_val_loss = []
-        true_answer = 0
-        for x, targets in valid_loder:
-
-            pred = model(x)
-            loss = loss_model(pred, targets)
-
-            runn_val_loss.append(loss.item())
-            res_val_loss = sum(runn_train_loss) / len(runn_train_loss)
-
-            true_answer += (pred.argmax(dim=1) == targets).sum().item()
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            torch.save(model.state_dict(), 'best_model.pt')
+            print("Save best_model")
 
 
-        runn_val_loss = true_answer / len(train_data)
-
-        val_loss.append(runn_val_loss)
-        val_acc.append(res_val_loss)
-
-    print(f"Epoch {epoch+1}/{EPOCHS}, train loss= {res_train_loss:.4f},"
-          f" train acc={runn_traing_acc:.4f},"
-          f" val loss={runn_val_loss:.4f},"
-          f" val acc={res_val_loss}")
-
-st = model.state_dict()
-torch.save(st, 'model.pt')
+if __name__ == '__main__':
+    train()
