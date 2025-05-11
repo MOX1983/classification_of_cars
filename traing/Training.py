@@ -11,7 +11,7 @@ from tqdm import tqdm
 from Main import MyDataset, MyModel
 
 def train():
-    train_dataset = MyDataset('.\\Datasets\\train')
+    train_dataset = MyDataset('../Datasets/train')
 
     train_data, valid_data = random_split(train_dataset, [0.8, 0.2])
 
@@ -75,8 +75,8 @@ def train():
 
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), 'best_model.pt')
-            print("Save best_model")
+            torch.save(model.state_dict(), '../best_model2.pt')
+            print("Save best_model2")
 
 
 if __name__ == '__main__':
