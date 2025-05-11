@@ -26,7 +26,7 @@ def show_answer():
 
 
 root = tkinter.Tk()
-root.title("car or truck")
+root.title("CNN")
 root.geometry("500x300")
 
 frame = tkinter.Frame(
